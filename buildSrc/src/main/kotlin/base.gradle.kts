@@ -1,0 +1,5 @@
+package buildsrc
+
+plugins {
+  base
+}
