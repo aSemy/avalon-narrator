@@ -64,7 +64,8 @@ tasks.named<ProcessResources>("jsProcessResources") {
       // https://github.com/gradle/gradle/issues/24268 is fixed
       expand("kotlinJsModuleName" to kotlinJsModuleName.get())
       filter {
-        it.replace("<!--suppress HtmlUnknownTarget -->\n", "")
+        @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
+        if (it.trim() == "<!--suppress HtmlUnknownTarget -->") null else it
       }
     }
   }
