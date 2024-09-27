@@ -192,7 +192,7 @@ private class ScriptPlayer {
           val source = audioContext.createBufferSource()
           source.buffer = audioBuffer
           source.connect(audioContext.destination)
-          source.start(0.0)
+          source.start()
 
           // Wait for the current track to finish
           delay(audioBuffer.duration.seconds)
@@ -211,6 +211,9 @@ private class ScriptPlayer {
     val url = "./script/${text.fileName()}.mp3?raw=true"
     console.log("Fetching audio buffer from $url...")
     val response = fetch(url)
+//    fetch(url, init = web.http.RequestInit(
+//      headers = web.http.Headers("{ \"Content-Type\": \"audio/mpeg\" }"),
+//    ))
     console.log("   response: $response ${response.status} ${response.statusText}")
     val arrayBuffer = response.arrayBuffer()
     console.log("   arrayBuffer: $arrayBuffer")
