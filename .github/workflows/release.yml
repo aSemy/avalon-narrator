@@ -27,6 +27,7 @@ jobs:
       - name: Checkout the repo
         uses: actions/checkout@v4
         with:
+          lfs: true
           ref: ${{ inputs.checkout-ref || github.ref }}
 
       - name: Setup Gradle
