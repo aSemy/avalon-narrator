@@ -34,7 +34,9 @@ suspend fun startScript(script: List<ScriptElem>, index: Int = 0) {
 
     when (val elem = script[index]) {
       is ScriptElem.Pause -> {
+        console.log("Pausing for ${elem.duration}...")
         delay(elem.duration)
+        console.log("Finished pause")
         startScript(script, index + 1)
 //        window.setTimeout({
 //          startScript(script, index + 1)
@@ -46,6 +48,7 @@ suspend fun startScript(script: List<ScriptElem>, index: Int = 0) {
           console.log("Playing ${elem.fileName()}...")
           onended = {
             console.log("Finished playing ${elem.fileName()}")
+            @Suppress("OPT_IN_USAGE")
             GlobalScope.launch {
               delay(0.5.seconds)
               startScript(script, index + 1)
