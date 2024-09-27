@@ -213,6 +213,7 @@ private class ScriptPlayer {
     val response = fetch(url)
     console.log("   response: $response ${response.status} ${response.statusText}")
     val arrayBuffer = response.arrayBuffer()
+    console.log("   arrayBuffer: $arrayBuffer")
     val audioData = audioContext.decodeAudioData(arrayBuffer)
     console.log("Fetched audio buffer $audioData from $url")
     return audioData
