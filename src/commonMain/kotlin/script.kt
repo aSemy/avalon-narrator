@@ -1,5 +1,6 @@
 import Role.*
 import Role.Companion.canSee
+import ScriptBuilder.Companion.buildScript
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -44,30 +45,13 @@ enum class Role(val team: Team) {
   }
 }
 
-sealed interface ScriptElem {
-  data class Text(val text: String) : ScriptElem
-  data class Pause(val duration: Duration) : ScriptElem
-
-  companion object {
-    fun Text.fileName(): String = text.map { if (it.isLetterOrDigit()) it else "-" }.joinToString("")
-  }
-}
-
-private fun MutableList<ScriptElem>.say(text: String) {
-  this.add(ScriptElem.Text(text))
-}
-
-private fun MutableList<ScriptElem>.pause(duration: Duration) {
-  this.add(ScriptElem.Pause(duration))
-}
-
 fun generateScript(
   roles: Set<Role>,
   enableMinionPriority: Boolean = false,
 ): List<ScriptElem> {
   val evilRoles = roles.filter { it.team == Team.Evil }
 
-  return buildList {
+  return buildScript {
     say("Okay, let's begin.")
     say("Everyone close your eyes.")
     pause(0.25.seconds)
@@ -136,5 +120,32 @@ fun generateScript(
     pause(0.5.seconds)
 
     say("Everyone, open your eyes. Let the game begin!")
+  }
+}
+
+
+sealed interface ScriptElem {
+  data class Text(val text: String) : ScriptElem
+  data class Pause(val duration: Duration) : ScriptElem
+
+  companion object {
+    fun Text.fileName(): String = text.map { if (it.isLetterOrDigit()) it else "-" }.joinToString("")
+  }
+}
+
+private class ScriptBuilder {
+  private val script = ArrayDeque<ScriptElem>()
+
+  fun say(text: String) {
+    script.add(ScriptElem.Text(text))
+  }
+
+  fun pause(duration: Duration) {
+    script.add(ScriptElem.Pause(duration))
+  }
+
+  companion object {
+    fun buildScript(block: ScriptBuilder.() -> Unit): List<ScriptElem> =
+      ScriptBuilder().apply(block).script.toList()
   }
 }
