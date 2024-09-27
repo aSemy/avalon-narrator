@@ -38,7 +38,7 @@ jobs:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Build site
-        run: ./gradlew :jsBrowserProductionWebpack
+        run: ./gradlew :build
 
       - name: Upload site to Pages
         uses: actions/upload-pages-artifact@v3
