@@ -1,72 +1,58 @@
 import ScriptElem.Companion.fileName
+import kotlin.collections.set
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.browser.document
-import kotlinx.coroutines.*
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.html.*
 import kotlinx.html.dom.append
 import kotlinx.html.js.onClickFunction
-import org.w3c.dom.Audio
+import kotlinx.html.org.w3c.dom.events.Event
 import org.w3c.dom.HTMLInputElement
+import web.audio.AudioBuffer
 import web.audio.AudioContext
-import web.events.EventHandler
-import web.speech.SpeechSynthesisUtterance
-import web.speech.speechSynthesis
+import web.http.fetch
 
 
-fun speakText(text: String, onEnd: () -> Unit) {
-  val utterance = SpeechSynthesisUtterance(text).apply {
-    onend = EventHandler { onEnd() }
-    lang = "en-GB"
-    rate = 0.85f
-  }
-  speechSynthesis.speak(utterance)
-}
+//suspend fun startScript(script: List<ScriptElem>, index: Int = 0): Unit = coroutineScope {
+//  if (index < script.size) {
+//
+////    (document.getElementById("progress")!! as HTMLElement)
+////      .setAttribute(
+////        "aria-valuenow",
+////        ceil(((index * 2 - 1).toFloat() / (script.size.toFloat() * 2f)) * 50f).coerceAtMost(100f).toString()
+////      )
+//
+//    when (val elem = script[index]) {
+//      is ScriptElem.Pause -> {
+//        console.log("Pausing for ${elem.duration}...")
+//        delay(elem.duration)
+//        console.log("Finished pause")
+//        startScript(script, index + 1)
+//      }
+//
+//      is ScriptElem.Text  -> {
+//        Audio("./script/${elem.fileName()}.mp3").apply {
+//          console.log("Playing ${elem.fileName()}...")
+//          onended = {
+//            console.log("Finished playing ${elem.fileName()}")
+//            launch {
+//              delay(0.5.seconds)
+//              startScript(script, index + 1)
+//            }
+//          }
+//          play().await()
+//        }
+//      }
+//    }
+//  }
+//}
 
+private val scriptPlayer by lazy { ScriptPlayer() }
 
-suspend fun startScript(script: List<ScriptElem>, index: Int = 0) {
-  if (index < script.size) {
-
-//    (document.getElementById("progress")!! as HTMLElement)
-//      .setAttribute(
-//        "aria-valuenow",
-//        ceil(((index * 2 - 1).toFloat() / (script.size.toFloat() * 2f)) * 50f).coerceAtMost(100f).toString()
-//      )
-
-    when (val elem = script[index]) {
-      is ScriptElem.Pause -> {
-        console.log("Pausing for ${elem.duration}...")
-        delay(elem.duration)
-        console.log("Finished pause")
-        startScript(script, index + 1)
-//        window.setTimeout({
-//          startScript(script, index + 1)
-//        }, elem.duration.inWholeMilliseconds.toInt())
-      }
-
-      is ScriptElem.Text  -> {
-        Audio("./script/${elem.fileName()}.mp3").apply {
-          console.log("Playing ${elem.fileName()}...")
-          onended = {
-            console.log("Finished playing ${elem.fileName()}")
-            @Suppress("OPT_IN_USAGE")
-            GlobalScope.launch {
-              delay(0.5.seconds)
-              startScript(script, index + 1)
-            }
-          }
-          play().await()
-        }
-//        window.setTimeout({
-//          speakText(elem.text) { startScript(script, index + 1) }
-//        }, 0.5.seconds.inWholeMilliseconds.toInt())
-      }
-    }
-  }
-}
-
-@OptIn(DelicateCoroutinesApi::class)
-suspend fun main() {
-  val audioContext = AudioContext()
+suspend fun main(): Unit = coroutineScope {
 
   val root = document.getElementById("root") ?: error("missing root")
 
@@ -99,18 +85,57 @@ suspend fun main() {
       }
     }
 
-    button {
-      +"Start Script"
-      onClickFunction = {
-        val selectedRoles = Role.entries.filter { role ->
-          (document.getElementById(role.name) as HTMLInputElement).checked
-        }
-        val script = generateScript(selectedRoles.toSet())
-        GlobalScope.launch {
-          startScript(script)
-        }
-      }
+    val playButton = button {
+      role = "switch"
+      attributes["data-playing"] = "false"
+      attributes["aria-checked"] = "false"
+      +"Play/Pause"
+
+//      onClickFunction = {
+//        val selectedRoles = Role.entries.filter { role ->
+//          (document.getElementById(role.name) as HTMLInputElement).checked
+//        }
+//        val script = generateScript(selectedRoles.toSet())
+//        launch {
+//          startScript(script)
+//        }
+//      }
     }
+
+//    val playButton = document.querySelector("button")!!
+    playButton.addEventListener(
+      type = "click",
+      { e: Event ->
+        console.log("Play/Pause clicked $e")
+
+        @Suppress("OPT_IN_USAGE")
+        GlobalScope.launch {
+          val selectedRoles = Role.entries.filter { role ->
+            (document.getElementById(role.name) as HTMLInputElement).checked
+          }
+          scriptPlayer.play(selectedRoles.toSet())
+        }
+
+//        // Check if context is in suspended state (autoplay policy)
+//        if (audioContext.state == web.audio.AudioContextState.suspended) {
+//          launch {
+//            audioContext.resume()
+//          }
+//        }
+
+        // Play or pause track depending on state
+
+//        if (!playButton.dataset["playing"].toBoolean()) {
+//          //audioElement.play()
+//          playButton.dataset["playing"] = "true"
+//        } else {
+//          //audioElement.pause()
+//          playButton.dataset["playing"] = "false";
+//        }
+
+      },
+      options = false
+    )
 
     div(classes = "script-container") {
       p {
@@ -139,5 +164,56 @@ suspend fun main() {
 //        style = "width: 50%"
 //      }
 //    }
+  }
+}
+
+
+private class ScriptPlayer {
+  private val audioContext by lazy { AudioContext() }
+
+  private val audioBuffers = mutableMapOf<String, AudioBuffer>()
+
+  suspend fun play(roles: Set<Role>) {
+    console.log("ScriptPlay.play $roles")
+
+    val script = generateScript(roles)
+
+    script.filterIsInstance<ScriptElem.Text>().forEach {
+      audioBuffers.getOrPut(it.fileName()) {
+        fetchAudioBuffer(it)
+      }
+    }
+
+    script.forEach { elem ->
+      when (elem) {
+        is ScriptElem.Pause -> delay(elem.duration)
+        is ScriptElem.Text  -> {
+          val audioBuffer = audioBuffers[elem.fileName()] ?: error("missing audio for $elem")
+          val source = audioContext.createBufferSource()
+          source.buffer = audioBuffer
+          source.connect(audioContext.destination)
+          source.start(0.0)
+
+          // Wait for the current track to finish
+          delay(audioBuffer.duration.seconds)
+          // Add a bit of delay between audio tracks
+          delay(0.7.seconds)
+        }
+      }
+    }
+  }
+
+  suspend fun stop() {
+    audioContext.suspend()
+  }
+
+  private suspend fun fetchAudioBuffer(text: ScriptElem.Text): AudioBuffer {
+    val url = "./script/${text.fileName()}.mp3"
+    console.log("Fetching audio buffer from $url...")
+    val response = fetch(url)
+    val arrayBuffer = response.arrayBuffer()
+    val audioData = audioContext.decodeAudioData(arrayBuffer)
+    console.log("Fetched audio buffer $audioData from $url")
+    return audioData
   }
 }
