@@ -8,23 +8,23 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToStream
 
+
 fun main(args: Array<String>) {
 
   val outputDir = args.firstOrNull()?.let(::Path) ?: error("Output dir missing")
 
   outputDir.createDirectories()
 
-  val map = generateScript(
-    roles = Role.entries.toSet(),
-    enableMinionPriority = false,
-  )
-    .filterIsInstance<ScriptElem.Text>()
-    .distinctBy { it.text }
-    .associate {
-      val id = it.fileName()
-      val file = generate(script = it, outputDir = outputDir)
-      id to file.relativeTo(outputDir).invariantSeparatorsPathString
-    }
+  val map =
+    getAllSubsets(Role.entries)
+      .flatMap { generateScript(it, enableMinionPriority = false) }
+      .filterIsInstance<ScriptElem.Text>()
+      .distinctBy { it.text }
+      .associate {
+        val id = it.fileName()
+        val file = generate(script = it, outputDir = outputDir)
+        id to file.relativeTo(outputDir).invariantSeparatorsPathString
+      }
 
   val idFile = outputDir.resolve("id.json")
   json.encodeToStream(map, idFile.outputStream())
@@ -87,3 +87,17 @@ private fun AudioConfig(build: AudioConfig.Builder.() -> Unit): AudioConfig =
 
 private fun VoiceSelectionParams(build: VoiceSelectionParams.Builder.() -> Unit): VoiceSelectionParams =
   VoiceSelectionParams.newBuilder().apply(build).build()
+
+
+private fun <T> getAllSubsets(input: List<T>): List<Set<T>> {
+  val allMasks = 1 shl input.size
+  return (0..<allMasks).map { mask ->
+    buildSet {
+      for (i in input.indices) {
+        if ((mask and (1 shl i)) > 0) {
+          add(input[i])
+        }
+      }
+    }
+  }
+}

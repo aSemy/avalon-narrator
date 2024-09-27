@@ -43,7 +43,9 @@ suspend fun startScript(script: List<ScriptElem>, index: Int = 0) {
 
       is ScriptElem.Text  -> {
         Audio("./script/${elem.fileName()}.mp3").apply {
+          console.log("Playing ${elem.fileName()}...")
           onended = {
+            console.log("Finished playing ${elem.fileName()}")
             GlobalScope.launch {
               delay(0.5.seconds)
               startScript(script, index + 1)

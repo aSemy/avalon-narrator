@@ -81,9 +81,9 @@ fun generateScript(
 
     if (!enableMinionPriority || evilRoles.isEmpty()) {
       if (Oberon in roles) {
-        say("$minionsOfMordred, (but not Oberon), open your eyes and look around, so that you can identify your fellow agents of evil.")
+        say("$minionsOfMordred, (but not Oberon), open your eyes and look around, and identify your fellow agents of evil.")
       } else {
-        say("$minionsOfMordred, open your eyes and look around, so that you can identify your fellow agents of evil.")
+        say("$minionsOfMordred, open your eyes and look around, so you can identify your fellow agents of evil.")
       }
       pause(5.seconds)
     } else {
@@ -103,8 +103,13 @@ fun generateScript(
 //    say("All players should have their eyes closed, with their hands in a closed fist in front of them.")
 
     val rolesKnownByMerlin = evilRoles.filter { Merlin.canSee(it) }.sorted()
-    say("${rolesKnownByMerlin.joinToString(", ")}, extend your thumbs so that Merlin can identify you.")
-    say("Merlin, open your eyes and see ${rolesKnownByMerlin.size} agents of evil.")
+    if (rolesKnownByMerlin.isNotEmpty()) {
+      say("${rolesKnownByMerlin.joinToString(", ")}, extend your thumbs so Merlin can identify you.")
+      say("Merlin, open your eyes and see ${rolesKnownByMerlin.size} agents of evil.")
+    } else {
+      say("Minions of Mordred, extend your thumbs so Merlin can identify you.")
+      say("Merlin, open your eyes and see the agents of evil.")
+    }
     pause(5.seconds) // big pause
     say("Merlin, close your eyes.")
     say("Minions of Mordred - put your thumbs down.")
@@ -114,13 +119,13 @@ fun generateScript(
 
     if (Percival in roles) {
       if (Morgana in roles) {
-        say("Merlin and Morgana, extend your thumbs so that Percival may identify you.")
+        say("Merlin and Morgana, extend your thumbs so Percival can identify you.")
         say("Percival, open your eyes, and identify Merlin and Morgana.")
         pause(4.seconds)
         say("Percival, close your eyes.")
         say("Merlin and Morgana: put your thumbs down.")
       } else {
-        say("Merlin, extend your thumb so that Percival may identify you.")
+        say("Merlin, extend your thumb so Percival can identify you.")
         say("Percival, open your eyes and identify Merlin.")
         pause(4.seconds)
         say("Percival, close your eyes.")
