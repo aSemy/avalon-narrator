@@ -208,7 +208,7 @@ private class ScriptPlayer {
   }
 
   private suspend fun fetchAudioBuffer(text: ScriptElem.Text): AudioBuffer {
-    val url = "./script/${text.fileName()}.mp3"
+    val url = "./script/${text.fileName()}.mp3?raw=true"
     console.log("Fetching audio buffer from $url...")
     val response = fetch(url)
     val arrayBuffer = response.arrayBuffer()
